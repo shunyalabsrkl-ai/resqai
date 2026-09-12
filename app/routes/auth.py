@@ -106,7 +106,12 @@ def provision_admin_from_env():
     existing = users_collection.find_one({"phone": phone})
     if existing:
         if str(existing.get("role", "")).upper() != "ADMIN":
-            users_collection.update_one({"_id": existing["_id"]}, {"$set": {"role": "ADMIN"}})
+            # The configured bootstrap identity takes precedence over a
+            # previously registered Citizen/Responder account with this phone.
+            users_collection.update_one(
+                {"_id": existing["_id"]},
+                {"$set": {"role": "ADMIN", "password": hash_password(password)}},
+            )
         return
 
     users_collection.insert_one({
