@@ -105,13 +105,14 @@ def provision_admin_from_env():
 
     existing = users_collection.find_one({"phone": phone})
     if existing:
-        if str(existing.get("role", "")).upper() != "ADMIN":
-            # The configured bootstrap identity takes precedence over a
-            # previously registered Citizen/Responder account with this phone.
-            users_collection.update_one(
-                {"_id": existing["_id"]},
-                {"$set": {"role": "ADMIN", "password": hash_password(password)}},
-            )
+        # The configured bootstrap identity takes precedence over a previously
+        # registered account. This also makes a deliberate password rotation in
+        # Render take effect on the next service restart.
+        users_collection.update_one(
+            {"_id": existing["_id"]},
+            {"$set": {"role": "ADMIN", "password": hash_password(password)}},
+        )
+        print("ResQAI admin bootstrap: configured account updated")
         return
 
     users_collection.insert_one({
@@ -121,6 +122,7 @@ def provision_admin_from_env():
         "role": "ADMIN",
         "created_at": datetime.now(timezone.utc),
     })
+    print("ResQAI admin bootstrap: configured account created")
 
 
 @router.post("/register")
@@ -222,3 +224,4 @@ def login(user: UserLogin):
                 existing_user["role"]
         }
     }
+
